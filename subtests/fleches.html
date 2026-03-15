@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flèches — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Flèches <span class="badge badge-v domain-badge">Visuospatial</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">5–12 ans · Items 1–15</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p>Tourner la page pour passer à l'Item 1.</p>
+      <div class="verbatim">Voici une autre cible. Quelles sont les deux flèches qui vont arriver tout droit au milieu de la cible ?</div>
+      <p style="margin-top:8px;">Si réponse incorrecte ou absence de réponse :</p>
+      <div class="verbatim">Cette flèche va tout droit au milieu de la cible (montrer). Maintenant, trouve une autre flèche qui va tout droit au milieu de la cible. Montre-moi simplement laquelle.</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">15 items. Pour chaque item, l'enfant doit désigner 2 flèches. Entourer sur le Cahier de passation les numéros désignés. Coter 0 (aucune correcte), 1 (une correcte) ou 2 (les deux correctes) selon le corrigé.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">pts</span>
+      </div>
+    </div>
+
+    <div class="score-section">
+      <h2>Items 1–15 — Score par item : 0, 1 ou 2 points</h2>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:8px;" id="grid"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    const scores = Array(15).fill(null);
+
+    function buildGrid() {
+      const grid = document.getElementById('grid');
+      for (let i = 0; i < 15; i++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'background:var(--white); border:1px solid var(--border); border-radius:8px; padding:12px 14px;';
+        row.innerHTML = `
+          <div style="font-size:13px; font-weight:600; margin-bottom:8px;">Item ${i+1}</div>
+          <div style="display:flex; gap:6px;">
+            ${[0,1,2].map(v => `<button class="btn btn-sm" id="fb-${i}-${v}" onclick="set(${i},${v})" style="border:2px solid var(--border); flex:1;">${v}</button>`).join('')}
+          </div>`;
+        grid.appendChild(row);
+      }
+    }
+
+    function set(i, val) {
+      scores[i] = val;
+      for (let v = 0; v <= 2; v++) {
+        const b = document.getElementById(`fb-${i}-${v}`);
+        const sel = v === val;
+        b.style.background = sel ? (val === 2 ? 'var(--green-bg)' : val === 1 ? 'var(--secondary)' : 'var(--red-bg)') : 'var(--white)';
+        b.style.borderColor = sel ? (val === 2 ? 'var(--green)' : val === 1 ? 'var(--primary)' : 'var(--red)') : 'var(--border)';
+        b.style.fontWeight = sel ? '700' : '400';
+      }
+      majTotal();
+    }
+
+    function majTotal() {
+      document.getElementById('noteFinale').textContent = scores.reduce((a, v) => a + (v ?? 0), 0);
+    }
+
+    async function sauvegarder() {
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'fleches',
+        note_brute: scores.reduce((a, v) => a + (v ?? 0), 0), details: { items: scores }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'fleches').single();
+      if (data?.details?.items) { data.details.items.forEach((v, i) => { if (v !== null) set(i, v); }); }
+    }
+
+    buildGrid();
+    chargerExistant();
+  </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fiche patient — PsychoEval</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <a href="dashboard.html" class="btn btn-secondary btn-sm">← Patients</a>
+    </div>
+  </header>
+
+  <div class="container" id="content" style="display:none;">
+
+    <!-- Infos patient -->
+    <div class="page-header">
+      <div>
+        <h1 id="patientNom"></h1>
+        <p id="patientMeta"></p>
+      </div>
+      <button id="btnNouveauBilan" class="btn btn-primary">+ Nouveau bilan</button>
+    </div>
+
+    <div class="patient-info">
+      <div class="info-item">
+        <div class="label">Date de naissance</div>
+        <div class="value" id="dateNaissance"></div>
+      </div>
+      <div class="info-item">
+        <div class="label">Âge actuel</div>
+        <div class="value" id="ageActuel"></div>
+      </div>
+      <div class="info-item">
+        <div class="label">Bilans réalisés</div>
+        <div class="value" id="nbBilans">0</div>
+      </div>
+    </div>
+
+    <!-- Historique bilans -->
+    <h2 style="font-size:17px; font-weight:700; margin-bottom:14px;">Historique des bilans</h2>
+
+    <div id="bilanEmpty" class="empty-state" style="display:none;">
+      <div class="icon">📋</div>
+      <h3>Aucun bilan</h3>
+      <p>Créez le premier bilan de ce patient.</p>
+    </div>
+
+    <div class="table-container" id="bilanTable" style="display:none;">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Statut</th><th>Subtests complétés</th><th></th></tr>
+        </thead>
+        <tbody id="bilanListe"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Chargement...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    const patientId = getParam('id');
+    if (!patientId) window.location.href = 'dashboard.html';
+
+    async function init() {
+      await requireAuth();
+
+      // Charger le patient
+      const { data: patient } = await sb
+        .from('patients')
+        .select('*')
+        .eq('id', patientId)
+        .single();
+
+      if (!patient) { window.location.href = 'dashboard.html'; return; }
+
+      // Afficher les infos
+      const age = calcAge(patient.date_naissance);
+      document.getElementById('patientNom').textContent = `${patient.nom} ${patient.prenom}`;
+      document.getElementById('patientMeta').textContent = `${age.str}`;
+      document.getElementById('dateNaissance').textContent = formatDate(patient.date_naissance);
+      document.getElementById('ageActuel').textContent = age.str;
+      document.title = `${patient.nom} ${patient.prenom} — PsychoEval`;
+
+      // Charger les bilans
+      const { data: bilans } = await sb
+        .from('bilans')
+        .select('*, scores(subtest)')
+        .eq('patient_id', patientId)
+        .order('date_bilan', { ascending: false });
+
+      document.getElementById('nbBilans').textContent = bilans?.length ?? 0;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      if (!bilans || bilans.length === 0) {
+        document.getElementById('bilanEmpty').style.display = 'block';
+      } else {
+        document.getElementById('bilanTable').style.display = 'block';
+        document.getElementById('bilanListe').innerHTML = bilans.map(b => {
+          const nb = b.scores?.length ?? 0;
+          const statut = b.statut === 'termine' ? '<span class="badge badge-done">Terminé</span>' : '<span class="badge badge-progress">En cours</span>';
+          return `<tr>
+            <td>${formatDate(b.date_bilan)}</td>
+            <td>${statut}</td>
+            <td>${nb} / 9 subtest${nb > 1 ? 's' : ''}</td>
+            <td>
+              <a href="bilan.html?id=${b.id}" class="btn btn-secondary btn-sm">Ouvrir</a>
+              ${b.statut === 'termine' ? `<a href="resultats.html?id=${b.id}" class="btn btn-secondary btn-sm" style="margin-left:6px;">Résultats</a>` : ''}
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Nouveau bilan
+      document.getElementById('btnNouveauBilan').addEventListener('click', async () => {
+        const { data: { session } } = await sb.auth.getSession();
+        const { data: bilan } = await sb.from('bilans').insert({
+          patient_id: patientId,
+          praticien_id: session.user.id,
+          date_bilan: new Date().toISOString().split('T')[0]
+        }).select().single();
+        if (bilan) window.location.href = `bilan.html?id=${bilan.id}`;
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

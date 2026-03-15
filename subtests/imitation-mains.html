@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imitation de positions de mains — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Imitation de positions de mains <span class="badge badge-s domain-badge">Sensori-moteur</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">3–12 ans · Items 1–24 · Max 24 pts</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <div class="verbatim">Regarde bien.</div>
+      <p style="margin-top:6px;">L'examinateur met sa main sous la table, la positionne, puis la montre à l'enfant. Déclencher le chronomètre dès que la main est montrée.</p>
+      <div class="verbatim">Fais comme ça.</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Items 1–12 : main dominante. Items 13–24 : reprendre avec la main non dominante. 20 secondes maximum par item. 1 pt si correct, 0 sinon. Garder la main visible jusqu'à réussite ou 20s écoulées.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">/ 24</span>
+      </div>
+    </div>
+
+    <!-- Items 1-12 : main dominante -->
+    <div class="score-section">
+      <h2>Items 1–12 — Main dominante</h2>
+      <p style="font-size:13px; color:var(--text-light); margin-bottom:12px;">1. Pouce dressé · 2. Index pointé · 3. Anneau pouce-index · 4. Pistolet · 5. Poing · 6. Pouce+auriculaire · 7. Paume ouverte · 8. Doigts écartés · 9. Index+majeur (V) · 10. Pouce+index (pince) · 11. Majeur sur annulaire · 12. Majeur+index sur annulaire+auriculaire</p>
+      <div class="items-grid" id="grid1"></div>
+    </div>
+
+    <!-- Items 13-24 : main non dominante -->
+    <div class="score-section">
+      <h2>Items 13–24 — Main non dominante</h2>
+      <p style="font-size:13px; color:var(--text-light); margin-bottom:12px;">Reprendre les mêmes positions (1–12) avec la main non dominante.</p>
+      <div class="items-grid" id="grid2"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    const scores = Array(24).fill(null);
+
+    function buildGrid(gridId, start) {
+      const grid = document.getElementById(gridId);
+      for (let i = start; i < start + 12; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'item-btn';
+        btn.id = `btn-${i}`;
+        btn.innerHTML = `<span class="item-num">Item ${i+1}</span><span class="item-score">–</span>`;
+        btn.onclick = () => { scores[i] = scores[i] === null ? 1 : scores[i] === 1 ? 0 : null; update(i); majTotal(); };
+        grid.appendChild(btn);
+      }
+    }
+
+    function update(i) {
+      const s = scores[i];
+      const btn = document.getElementById(`btn-${i}`);
+      btn.className = 'item-btn' + (s === 1 ? ' correct' : s === 0 ? ' incorrect' : '');
+      btn.querySelector('.item-score').textContent = s === null ? '–' : s;
+    }
+
+    function majTotal() {
+      document.getElementById('noteFinale').textContent = scores.reduce((a, v) => a + (v ?? 0), 0);
+    }
+
+    async function sauvegarder() {
+      const total = scores.reduce((a, v) => a + (v ?? 0), 0);
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'imitation-mains',
+        note_brute: total, details: { items: scores }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'imitation-mains').single();
+      if (data?.details?.items) { data.details.items.forEach((v, i) => { scores[i] = v; update(i); }); majTotal(); }
+    }
+
+    buildGrid('grid1', 0);
+    buildGrid('grid2', 12);
+    chargerExistant();
+  </script>
+</body>
+</html>

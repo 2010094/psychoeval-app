@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cubes — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Cubes <span class="badge badge-v domain-badge">Visuospatial</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">3–12 ans · Note max : 19</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p><strong>Items 1–5 :</strong> Construire le modèle en face de l'enfant, placer le nombre de cubes nécessaires et dire :</p>
+      <div class="verbatim">Je vais construire un(e) ___ (tour, table, train, escalier). Maintenant vas-y. Fais un(e) ___ qui ressemble au mien (à la mienne).</div>
+      <p style="margin-top:8px;"><strong>Items 6–13 :</strong> Placer le nombre de cubes et la page du chevalet.</p>
+      <div class="verbatim">Mets tes cubes comme ceux-ci.</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Temps max : 30s/item. Items 8–13 : 2 pts si réussi en ≤ 15s, 1 pt sinon. Ne pas dépasser le temps imparti.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">/ 19</span>
+      </div>
+    </div>
+
+    <!-- Items 1-7 : 0/1 -->
+    <div class="score-section">
+      <h2>Items 1–7 (1 pt chacun) — 3–4 ans : items 1–5 · 5–12 ans : items 1–7</h2>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:8px;" id="grid1"></div>
+    </div>
+
+    <!-- Items 8-13 : 0/1/2 -->
+    <div class="score-section">
+      <h2>Items 8–13 (2 pts si ≤ 15 s, 1 pt sinon)</h2>
+      <div style="display:flex; flex-direction:column; gap:12px;" id="grid2"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    // items 1-7 : 0 ou 1
+    const noms1 = ['Tour (3 cubes)', 'Table (2 cubes)', 'Tour (6 cubes)', 'Train (4 cubes)', 'Escalier (3 cubes)', 'Item 6', 'Item 7'];
+    const scores1 = Array(7).fill(null);
+    // items 8-13 : 0, 1 ou 2
+    const scores2 = Array(6).fill(null);
+
+    function buildGrids() {
+      const g1 = document.getElementById('grid1');
+      noms1.forEach((nom, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'item-btn';
+        btn.id = `btn1-${i}`;
+        btn.innerHTML = `<span class="item-num">${nom}</span><span class="item-score">–</span>`;
+        btn.onclick = () => { scores1[i] = scores1[i] === null ? 1 : scores1[i] === 1 ? 0 : null; updateBtn1(i); majTotal(); };
+        g1.appendChild(btn);
+      });
+
+      const g2 = document.getElementById('grid2');
+      for (let i = 0; i < 6; i++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:12px; background:var(--white); border:1px solid var(--border); border-radius:8px; padding:14px 16px;';
+        row.innerHTML = `
+          <span style="font-weight:600; font-size:14px; width:60px;">Item ${i+8}</span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm" id="b2-${i}-0" onclick="setScore2(${i}, 0)" style="border:2px solid var(--border);">0 pt</button>
+            <button class="btn btn-sm" id="b2-${i}-1" onclick="setScore2(${i}, 1)" style="border:2px solid var(--border);">1 pt <span style="font-size:11px; color:var(--text-light);">(&gt;15s)</span></button>
+            <button class="btn btn-sm" id="b2-${i}-2" onclick="setScore2(${i}, 2)" style="border:2px solid var(--border);">2 pts <span style="font-size:11px; color:var(--green)">(≤15s)</span></button>
+          </div>`;
+        g2.appendChild(row);
+      }
+    }
+
+    function updateBtn1(i) {
+      const s = scores1[i];
+      const btn = document.getElementById(`btn1-${i}`);
+      btn.className = 'item-btn' + (s === 1 ? ' correct' : s === 0 ? ' incorrect' : '');
+      btn.querySelector('.item-score').textContent = s === null ? '–' : s;
+    }
+
+    function setScore2(i, val) {
+      scores2[i] = val;
+      for (let v = 0; v <= 2; v++) {
+        const b = document.getElementById(`b2-${i}-${v}`);
+        b.style.background = v === val ? (val === 2 ? 'var(--green-bg)' : val === 1 ? 'var(--secondary)' : 'var(--red-bg)') : 'var(--white)';
+        b.style.borderColor = v === val ? (val === 2 ? 'var(--green)' : val === 1 ? 'var(--primary)' : 'var(--red)') : 'var(--border)';
+      }
+      majTotal();
+    }
+
+    function majTotal() {
+      const t1 = scores1.reduce((a, v) => a + (v ?? 0), 0);
+      const t2 = scores2.reduce((a, v) => a + (v ?? 0), 0);
+      document.getElementById('noteFinale').textContent = t1 + t2;
+    }
+
+    async function sauvegarder() {
+      const t1 = scores1.reduce((a, v) => a + (v ?? 0), 0);
+      const t2 = scores2.reduce((a, v) => a + (v ?? 0), 0);
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'cubes',
+        note_brute: t1 + t2, details: { items1: scores1, items2: scores2 }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'cubes').single();
+      if (data?.details) {
+        if (data.details.items1) data.details.items1.forEach((v, i) => { scores1[i] = v; updateBtn1(i); });
+        if (data.details.items2) data.details.items2.forEach((v, i) => { if (v !== null) setScore2(i, v); });
+        majTotal();
+      }
+    }
+
+    buildGrids();
+    chargerExistant();
+  </script>
+</body>
+</html>

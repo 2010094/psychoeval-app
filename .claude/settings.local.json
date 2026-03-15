@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(textutil -convert txt \"/Users/vincentjulien/Downloads/Psycho/Nepsy pages Manuel S Paire.doc\" -output /tmp/nepsy.txt)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(which antiword:*)",
+      "Bash(brew install:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(git init:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

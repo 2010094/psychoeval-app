@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copie de figures — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Copie de figures <span class="badge badge-v domain-badge">Visuospatial</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">5–12 ans · Note max brute : 72 (−6 pts correction)</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p><strong>5–6 ans :</strong> Montrer l'Item 1.</p>
+      <p><strong>7–12 ans :</strong> Montrer l'Item 4.</p>
+      <div class="verbatim">Recopie ceci ici. (Montrer le rectangle de réponse en dessous de l'item.)</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Encourager l'enfant à recopier le plus possible de dessins. Ne pas autoriser l'enfant à effacer ou retourner le papier. Coter 1 pt par critère atteint (grilles de cotation du Cahier de passation). <strong>Retrancher 6 points</strong> à la note brute pour l'étalonnage français.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note brute</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteBrute">0</span>
+        <span class="max">pts &nbsp;→&nbsp; corrigée : <strong id="noteCorrigee">0</strong> pts (−6)</span>
+      </div>
+    </div>
+
+    <div class="score-section">
+      <h2>Saisie de la note brute</h2>
+      <p style="font-size:13px; color:var(--text-light); margin-bottom:16px;">Utiliser les fiches de cotation du Cahier de passation. Saisir la note brute totale (somme de tous les critères atteints pour tous les items).</p>
+
+      <div class="card">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="form-group" style="margin:0;">
+            <label>Note brute totale (avant correction)</label>
+            <input type="number" id="noteBruteInput" min="0" max="72" placeholder="0–72" oninput="majNote()" style="max-width:120px;" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Observations qualitatives</label>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:14px;"><input type="checkbox" id="tremblement" /> Tremblement de la main observé</label>
+              <label style="display:flex; align-items:center; gap:6px; font-weight:400; font-size:14px;"><input type="checkbox" id="retourne" /> L'enfant a retourné la feuille</label>
+            </div>
+            <label style="font-size:13px; color:var(--text-light);">Tenue du crayon :</label>
+            <select id="tenueCrayon" style="margin-top:6px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px;">
+              <option value="">Non renseigné</option>
+              <option value="mature">Mature (trépied dynamique)</option>
+              <option value="immature">Immature</option>
+              <option value="atypique">Atypique</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    function majNote() {
+      const brute = parseInt(document.getElementById('noteBruteInput').value) || 0;
+      const corrigee = Math.max(0, brute - 6);
+      document.getElementById('noteBrute').textContent = brute;
+      document.getElementById('noteCorrigee').textContent = corrigee;
+    }
+
+    async function sauvegarder() {
+      const brute = parseInt(document.getElementById('noteBruteInput').value) || 0;
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'copie-figures',
+        note_brute: brute,
+        details: {
+          note_brute: brute,
+          note_corrigee: Math.max(0, brute - 6),
+          tremblement: document.getElementById('tremblement').checked,
+          retourne: document.getElementById('retourne').checked,
+          tenue_crayon: document.getElementById('tenueCrayon').value
+        }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'copie-figures').single();
+      if (data?.details) {
+        const d = data.details;
+        if (d.note_brute) { document.getElementById('noteBruteInput').value = d.note_brute; majNote(); }
+        if (d.tremblement) document.getElementById('tremblement').checked = d.tremblement;
+        if (d.retourne) document.getElementById('retourne').checked = d.retourne;
+        if (d.tenue_crayon) document.getElementById('tenueCrayon').value = d.tenue_crayon;
+      }
+    }
+
+    chargerExistant();
+  </script>
+</body>
+</html>

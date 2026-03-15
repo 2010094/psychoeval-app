@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilan — PsychoEval</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <a id="retourPatient" href="dashboard.html" class="btn btn-secondary btn-sm">← Patient</a>
+      <a id="voirResultats" href="#" class="btn btn-primary btn-sm" style="display:none;">Voir les résultats</a>
+    </div>
+  </header>
+
+  <div class="container" id="content" style="display:none;">
+    <div class="page-header">
+      <div>
+        <h1 id="bilanTitre">Bilan du …</h1>
+        <p id="bilanMeta"></p>
+      </div>
+      <button id="btnTerminer" class="btn btn-secondary" onclick="terminerBilan()">Marquer terminé</button>
+    </div>
+
+    <div class="alert alert-info" style="display:block; margin-bottom:24px;">
+      Cliquez sur un subtest pour le réaliser. Les résultats sont sauvegardés automatiquement.
+    </div>
+
+    <!-- Domaine Visuospatial -->
+    <h2 style="font-size:14px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Domaine Visuospatial</h2>
+    <div class="subtests-grid" style="margin-bottom:28px;">
+      <div class="subtest-item" id="si-orientation" onclick="ouvrirSubtest('orientation')">
+        <div class="subtest-left">
+          <div class="subtest-icon v">V</div>
+          <div>
+            <div class="subtest-name">Orientation</div>
+            <div class="subtest-meta">Items 1–10 · Max 10 pts</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-orientation">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-cubes" onclick="ouvrirSubtest('cubes')">
+        <div class="subtest-left">
+          <div class="subtest-icon v">V</div>
+          <div>
+            <div class="subtest-name">Cubes</div>
+            <div class="subtest-meta">Items 1–13 · Max 19 pts</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-cubes">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-fleches" onclick="ouvrirSubtest('fleches')">
+        <div class="subtest-left">
+          <div class="subtest-icon v">V</div>
+          <div>
+            <div class="subtest-name">Flèches</div>
+            <div class="subtest-meta">Items 1–15</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-fleches">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-copie-figures" onclick="ouvrirSubtest('copie-figures')">
+        <div class="subtest-left">
+          <div class="subtest-icon v">V</div>
+          <div>
+            <div class="subtest-name">Copie de figures</div>
+            <div class="subtest-meta">5–6 ans / 7–12 ans · Max 72 pts</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-copie-figures">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Domaine Sensori-moteur -->
+    <h2 style="font-size:14px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">Domaine Sensori-moteur</h2>
+    <div class="subtests-grid">
+      <div class="subtest-item" id="si-distinction-doigts" onclick="ouvrirSubtest('distinction-doigts')">
+        <div class="subtest-left">
+          <div class="subtest-icon s">S</div>
+          <div>
+            <div class="subtest-name">Distinction de doigts</div>
+            <div class="subtest-meta">Items 1–28</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-distinction-doigts">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-sequences-motrices" onclick="ouvrirSubtest('sequences-motrices')">
+        <div class="subtest-left">
+          <div class="subtest-icon s">S</div>
+          <div>
+            <div class="subtest-name">Séquences motrices</div>
+            <div class="subtest-meta">12 items · 5 séquences/item</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-sequences-motrices">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-precision-visuomotrice" onclick="ouvrirSubtest('precision-visuomotrice')">
+        <div class="subtest-left">
+          <div class="subtest-icon s">S</div>
+          <div>
+            <div class="subtest-name">Précision visuomotrice</div>
+            <div class="subtest-meta">2 parcours · Max 360 s</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-precision-visuomotrice">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-imitation-mains" onclick="ouvrirSubtest('imitation-mains')">
+        <div class="subtest-left">
+          <div class="subtest-icon s">S</div>
+          <div>
+            <div class="subtest-name">Imitation de positions</div>
+            <div class="subtest-meta">24 items · Max 24 pts</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-imitation-mains">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+
+      <div class="subtest-item" id="si-tapping" onclick="ouvrirSubtest('tapping')">
+        <div class="subtest-left">
+          <div class="subtest-icon s">S</div>
+          <div>
+            <div class="subtest-name">Tapping</div>
+            <div class="subtest-meta">4 items · Max 300 s</div>
+          </div>
+        </div>
+        <div class="subtest-score" id="sc-tapping">
+          <span class="badge badge-pending">À faire</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Chargement...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    const bilanId = getParam('id');
+    if (!bilanId) window.location.href = 'dashboard.html';
+
+    // Sauvegarder le bilan_id pour les subtests
+    sessionStorage.setItem('bilan_id', bilanId);
+
+    async function init() {
+      await requireAuth();
+
+      const { data: bilan } = await sb
+        .from('bilans')
+        .select('*, patients(nom, prenom, date_naissance)')
+        .eq('id', bilanId)
+        .single();
+
+      if (!bilan) { window.location.href = 'dashboard.html'; return; }
+
+      const p = bilan.patients;
+      const age = calcAge(p.date_naissance);
+      document.getElementById('bilanTitre').textContent = `Bilan du ${formatDate(bilan.date_bilan)}`;
+      document.getElementById('bilanMeta').textContent = `${p.nom} ${p.prenom} — ${age.str}`;
+      document.getElementById('retourPatient').href = `patient.html?id=${bilan.patient_id}`;
+      document.getElementById('voirResultats').href = `resultats.html?id=${bilanId}`;
+
+      if (bilan.statut === 'termine') {
+        document.getElementById('btnTerminer').style.display = 'none';
+        document.getElementById('voirResultats').style.display = 'inline-flex';
+      }
+
+      // Charger les scores existants
+      const { data: scores } = await sb
+        .from('scores')
+        .select('*')
+        .eq('bilan_id', bilanId);
+
+      if (scores) {
+        scores.forEach(s => afficherScore(s.subtest, s.note_brute));
+      }
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    function afficherScore(subtest, note) {
+      const el = document.getElementById(`sc-${subtest}`);
+      const si = document.getElementById(`si-${subtest}`);
+      if (!el) return;
+      el.innerHTML = `<div class="score">${note}</div><div class="max">pts</div>`;
+      si.classList.add('done');
+    }
+
+    function ouvrirSubtest(nom) {
+      window.location.href = `subtests/${nom}.html?bilan=${bilanId}`;
+    }
+
+    async function terminerBilan() {
+      await sb.from('bilans').update({ statut: 'termine' }).eq('id', bilanId);
+      document.getElementById('btnTerminer').style.display = 'none';
+      document.getElementById('voirResultats').style.display = 'inline-flex';
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mes patients — PsychoEval</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <span class="header-user" id="userEmail"></span>
+      <button class="btn-logout" onclick="logout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1>Mes patients</h1>
+        <p>Gérez vos patients et leurs bilans psychomoteurs</p>
+      </div>
+      <a href="patient-nouveau.html" class="btn btn-primary">+ Nouveau patient</a>
+    </div>
+
+    <!-- Recherche -->
+    <div class="form-group" style="max-width:320px; margin-bottom:20px;">
+      <input type="text" id="search" placeholder="Rechercher un patient..." oninput="filtrer()" />
+    </div>
+
+    <div id="loading" class="loading">Chargement...</div>
+    <div id="empty" class="empty-state" style="display:none;">
+      <div class="icon">👶</div>
+      <h3>Aucun patient</h3>
+      <p>Commencez par ajouter votre premier patient.</p>
+      <a href="patient-nouveau.html" class="btn btn-primary">Ajouter un patient</a>
+    </div>
+
+    <div class="table-container" id="tableau" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom / Prénom</th>
+            <th>Date de naissance</th>
+            <th>Âge</th>
+            <th>Bilans</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="liste"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    let tousLesPatients = [];
+
+    async function init() {
+      const session = await requireAuth();
+      if (!session) return;
+      document.getElementById('userEmail').textContent = session.user.email;
+      await chargerPatients();
+    }
+
+    async function chargerPatients() {
+      const { data, error } = await sb
+        .from('patients')
+        .select('*, bilans(count)')
+        .order('nom');
+
+      document.getElementById('loading').style.display = 'none';
+
+      if (error || !data) { showError('Erreur de chargement.'); return; }
+
+      tousLesPatients = data;
+      afficher(data);
+    }
+
+    function afficher(patients) {
+      if (patients.length === 0) {
+        document.getElementById('empty').style.display = 'block';
+        document.getElementById('tableau').style.display = 'none';
+        return;
+      }
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('tableau').style.display = 'block';
+
+      const tbody = document.getElementById('liste');
+      tbody.innerHTML = patients.map(p => {
+        const age = calcAge(p.date_naissance);
+        const nbBilans = p.bilans?.[0]?.count ?? 0;
+        return `
+          <tr>
+            <td><strong>${p.nom.toUpperCase()} ${p.prenom}</strong></td>
+            <td>${formatDate(p.date_naissance)}</td>
+            <td>${age.str}</td>
+            <td><span class="badge ${nbBilans > 0 ? 'badge-done' : 'badge-pending'}">${nbBilans} bilan${nbBilans > 1 ? 's' : ''}</span></td>
+            <td><a href="patient.html?id=${p.id}" class="btn btn-secondary btn-sm">Ouvrir</a></td>
+          </tr>`;
+      }).join('');
+    }
+
+    function filtrer() {
+      const q = document.getElementById('search').value.toLowerCase();
+      afficher(tousLesPatients.filter(p =>
+        p.nom.toLowerCase().includes(q) || p.prenom.toLowerCase().includes(q)
+      ));
+    }
+
+    async function logout() {
+      await sb.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
+    init();
+  </script>
+</body>
+</html>

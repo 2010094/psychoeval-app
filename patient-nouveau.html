@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nouveau patient — PsychoEval</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <a href="dashboard.html" class="btn btn-secondary btn-sm">← Retour</a>
+    </div>
+  </header>
+
+  <div class="container-sm">
+    <div class="page-header">
+      <div><h1>Nouveau patient</h1></div>
+    </div>
+
+    <div class="card">
+      <div id="error" class="alert alert-error"></div>
+
+      <form id="patientForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nom">Nom *</label>
+            <input type="text" id="nom" placeholder="DUPONT" required />
+          </div>
+          <div class="form-group">
+            <label for="prenom">Prénom *</label>
+            <input type="text" id="prenom" placeholder="Léa" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="date_naissance">Date de naissance *</label>
+          <input type="date" id="date_naissance" required />
+        </div>
+        <div id="agePreview" style="font-size:14px; color:var(--text-light); margin-bottom:16px; display:none;"></div>
+        <div class="form-group">
+          <label for="notes">Notes (optionnel)</label>
+          <textarea id="notes" placeholder="Informations complémentaires..."></textarea>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <a href="dashboard.html" class="btn btn-secondary">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    requireAuth();
+
+    document.getElementById('date_naissance').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      const age = calcAge(val);
+      const preview = document.getElementById('agePreview');
+      preview.style.display = 'block';
+      preview.textContent = `Âge : ${age.str}`;
+      // Vérifier la tranche NEPSY (3-12 ans)
+      if (age.annees < 3 || age.annees > 12) {
+        preview.style.color = 'var(--orange)';
+        preview.textContent += ' — Hors tranche NEPSY (3–12 ans)';
+      } else {
+        preview.style.color = 'var(--green)';
+      }
+    });
+
+    document.getElementById('patientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true;
+
+      const { data: { session } } = await sb.auth.getSession();
+
+      const { data, error } = await sb.from('patients').insert({
+        praticien_id: session.user.id,
+        nom: document.getElementById('nom').value.trim().toUpperCase(),
+        prenom: document.getElementById('prenom').value.trim(),
+        date_naissance: document.getElementById('date_naissance').value,
+        notes: document.getElementById('notes').value.trim() || null
+      }).select().single();
+
+      if (error) {
+        showError('Erreur lors de l\'enregistrement.');
+        btn.disabled = false;
+      } else {
+        window.location.href = `patient.html?id=${data.id}`;
+      }
+    });
+  </script>
+</body>
+</html>

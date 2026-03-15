@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distinction de doigts — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Distinction de doigts <span class="badge badge-s domain-badge">Sensori-moteur</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">5–12 ans · Items 1–28</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p>L'enfant glisse sa main dans un cache. L'examinateur touche un ou deux doigts à l'abri du regard.</p>
+      <div class="verbatim">Je vais toucher un ou deux de tes doigts pendant que tu ne regardes pas. Quels doigts j'ai touchés ?</div>
+      <p style="margin-top:8px;">Lors de l'entraînement :</p>
+      <div class="verbatim">Je peux aussi toucher deux doigts en même temps comme ceci (toucher l'index et le pouce simultanément). Enlever le cache. Quels doigts j'ai touchés ?</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Items 1–28. Ne pas indiquer à l'enfant à l'avance si un ou deux doigts seront touchés. 1 point par bonne réponse.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">/ 28</span>
+      </div>
+    </div>
+
+    <div class="score-section">
+      <h2>Items 1–28 — Cliquer : vert = correct · rouge = incorrect</h2>
+      <div class="items-grid" id="grid"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    const scores = Array(28).fill(null);
+
+    function buildGrid() {
+      const grid = document.getElementById('grid');
+      for (let i = 0; i < 28; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'item-btn';
+        btn.id = `btn-${i}`;
+        btn.innerHTML = `<span class="item-num">Item ${i+1}</span><span class="item-score">–</span>`;
+        btn.onclick = () => { scores[i] = scores[i] === null ? 1 : scores[i] === 1 ? 0 : null; update(i); majTotal(); };
+        grid.appendChild(btn);
+      }
+    }
+
+    function update(i) {
+      const s = scores[i];
+      const btn = document.getElementById(`btn-${i}`);
+      btn.className = 'item-btn' + (s === 1 ? ' correct' : s === 0 ? ' incorrect' : '');
+      btn.querySelector('.item-score').textContent = s === null ? '–' : s;
+    }
+
+    function majTotal() {
+      document.getElementById('noteFinale').textContent = scores.reduce((a, v) => a + (v ?? 0), 0);
+    }
+
+    async function sauvegarder() {
+      const total = scores.reduce((a, v) => a + (v ?? 0), 0);
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'distinction-doigts',
+        note_brute: total, details: { items: scores }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'distinction-doigts').single();
+      if (data?.details?.items) { data.details.items.forEach((v, i) => { scores[i] = v; update(i); }); majTotal(); }
+    }
+
+    buildGrid();
+    chargerExistant();
+  </script>
+</body>
+</html>

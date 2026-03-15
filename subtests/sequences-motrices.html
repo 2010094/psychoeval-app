@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Séquences motrices manuelles — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Séquences motrices manuelles <span class="badge badge-s domain-badge">Sensori-moteur</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">5–12 ans · 12 items</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p>L'examinateur exécute une séquence de mouvements (Poing / Paume / Côté de la main) et demande à l'enfant de la reproduire.</p>
+      <div class="verbatim">Vas-y, fais comme ça et continue jusqu'à ce que je te dise d'arrêter.</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">5 séquences à réaliser par item. Entourer les séquences correctes (1→5), barrer les erreurs. Une erreur = ordre de mouvements incorrect ou interruption trop longue. Allure irrégulière = non compté comme erreur.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">pts</span>
+      </div>
+    </div>
+
+    <div class="score-section">
+      <h2>Nombre de séquences correctes par item (0 à 5)</h2>
+      <div style="display:flex; flex-direction:column; gap:10px;" id="items"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    const descriptions = [
+      'Items 1–2 (3-4 ans) · Poing + Paume (face main dominante)',
+      'Items 1–2 (5-12 ans) · Poing + Paume (face main non dominante)',
+      'Item 3 (8-12 ans) · Poing + Paume (face main non dominante)',
+      'Item 4 · Claque + Paume',
+      'Item 5 · Poing + Paume + Côté (face main dominante)',
+      'Item 6 · Poing + Paume + Côté (face main non dominante)',
+      'Item 7 · Poing + Paume + Côté (main dominante, unimanuel)',
+      'Item 8 · Poing + Paume + Côté (main non dominante, unimanuel)',
+      'Item 9 · Claque + Poing + Paume + Poing',
+      'Item 10 · Poing + Côté + Paume + Poing',
+      'Item 11 · Claque + Poing + Paume + Poing (bilatéral)',
+      'Item 12 · Poing + Côté + Paume + Poing (bilatéral)'
+    ];
+
+    const scores = Array(12).fill(null);
+
+    function buildItems() {
+      const container = document.getElementById('items');
+      descriptions.forEach((desc, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'background:var(--white); border:1px solid var(--border); border-radius:8px; padding:14px 16px;';
+        row.innerHTML = `
+          <div style="font-size:13px; font-weight:600; margin-bottom:8px;">Item ${i+1} — ${desc}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13px; color:var(--text-light);">Séquences correctes :</span>
+            <div style="display:flex; gap:4px;">
+              ${[0,1,2,3,4,5].map(v => `<button class="btn btn-sm" id="sb-${i}-${v}" onclick="set(${i},${v})" style="border:2px solid var(--border); min-width:36px;">${v}</button>`).join('')}
+            </div>
+          </div>`;
+        container.appendChild(row);
+      });
+    }
+
+    function set(i, val) {
+      scores[i] = val;
+      for (let v = 0; v <= 5; v++) {
+        const b = document.getElementById(`sb-${i}-${v}`);
+        const sel = v === val;
+        b.style.background = sel ? (val >= 4 ? 'var(--green-bg)' : val >= 2 ? 'var(--secondary)' : 'var(--red-bg)') : 'var(--white)';
+        b.style.borderColor = sel ? (val >= 4 ? 'var(--green)' : val >= 2 ? 'var(--primary)' : 'var(--red)') : 'var(--border)';
+        b.style.fontWeight = sel ? '700' : '400';
+      }
+      majTotal();
+    }
+
+    function majTotal() {
+      document.getElementById('noteFinale').textContent = scores.reduce((a, v) => a + (v ?? 0), 0);
+    }
+
+    async function sauvegarder() {
+      const total = scores.reduce((a, v) => a + (v ?? 0), 0);
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'sequences-motrices',
+        note_brute: total, details: { items: scores }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'sequences-motrices').single();
+      if (data?.details?.items) { data.details.items.forEach((v, i) => { if (v !== null) set(i, v); }); }
+    }
+
+    buildItems();
+    chargerExistant();
+  </script>
+</body>
+</html>

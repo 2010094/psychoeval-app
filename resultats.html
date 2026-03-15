@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Résultats — PsychoEval</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <a id="retourBilan" href="#" class="btn btn-secondary btn-sm">← Bilan</a>
+    </div>
+  </header>
+
+  <div class="container" id="content" style="display:none;">
+    <div class="page-header">
+      <div>
+        <h1 id="titre">Résultats du bilan</h1>
+        <p id="meta"></p>
+      </div>
+      <button class="btn btn-secondary" onclick="window.print()">Imprimer</button>
+    </div>
+
+    <!-- Synthèse globale -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:28px;">
+      <div class="info-item">
+        <div class="label">Subtests complétés</div>
+        <div class="value" id="nbCompletes">–</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Date du bilan</div>
+        <div class="value" id="dateBilan">–</div>
+      </div>
+    </div>
+
+    <!-- Tableau des scores -->
+    <h2 style="font-size:17px; font-weight:700; margin-bottom:14px;">Notes brutes par subtest</h2>
+    <div class="table-container" style="margin-bottom:28px;">
+      <table>
+        <thead>
+          <tr><th>Subtest</th><th>Domaine</th><th>Note brute</th><th>Note max</th><th></th></tr>
+        </thead>
+        <tbody id="scoreTable"></tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-info" style="display:block;">
+      Les notes normées (percentiles, scores standardisés) seront disponibles dès l'intégration des tables d'étalonnage NEPSY dans une prochaine mise à jour.
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Chargement...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    const bilanId = getParam('id');
+    if (!bilanId) window.location.href = 'dashboard.html';
+
+    const SUBTESTS = [
+      { id: 'orientation',          nom: 'Orientation',                  domaine: 'V', max: 10 },
+      { id: 'cubes',                nom: 'Cubes',                        domaine: 'V', max: 19 },
+      { id: 'fleches',              nom: 'Flèches',                      domaine: 'V', max: 30 },
+      { id: 'copie-figures',        nom: 'Copie de figures',             domaine: 'V', max: 72 },
+      { id: 'distinction-doigts',   nom: 'Distinction de doigts',        domaine: 'S', max: 28 },
+      { id: 'sequences-motrices',   nom: 'Séquences motrices manuelles', domaine: 'S', max: 60 },
+      { id: 'precision-visuomotrice', nom: 'Précision visuomotrice',     domaine: 'S', max: null },
+      { id: 'imitation-mains',      nom: 'Imitation de positions de mains', domaine: 'S', max: 24 },
+      { id: 'tapping',              nom: 'Tapping',                      domaine: 'S', max: 300 },
+    ];
+
+    async function init() {
+      await requireAuth();
+
+      const { data: bilan } = await sb.from('bilans')
+        .select('*, patients(nom, prenom, date_naissance)')
+        .eq('id', bilanId).single();
+
+      if (!bilan) { window.location.href = 'dashboard.html'; return; }
+
+      const p = bilan.patients;
+      const age = calcAge(p.date_naissance);
+      document.getElementById('titre').textContent = `Résultats — ${p.nom} ${p.prenom}`;
+      document.getElementById('meta').textContent = `${age.str} · Bilan du ${formatDate(bilan.date_bilan)}`;
+      document.getElementById('dateBilan').textContent = formatDate(bilan.date_bilan);
+      document.getElementById('retourBilan').href = `bilan.html?id=${bilanId}`;
+      document.title = `Résultats ${p.nom} — PsychoEval`;
+
+      const { data: scores } = await sb.from('scores').select('*').eq('bilan_id', bilanId);
+      const scoreMap = {};
+      (scores || []).forEach(s => { scoreMap[s.subtest] = s; });
+
+      document.getElementById('nbCompletes').textContent = `${Object.keys(scoreMap).length} / 9`;
+
+      const tbody = document.getElementById('scoreTable');
+      tbody.innerHTML = SUBTESTS.map(st => {
+        const s = scoreMap[st.id];
+        const note = s ? s.note_brute : null;
+        const maxStr = st.id === 'tapping' ? '300 s' : st.id === 'precision-visuomotrice' ? '360 s' : (st.max ? st.max + ' pts' : '—');
+        const noteStr = note !== null && note !== undefined
+          ? (st.id === 'tapping' || st.id === 'precision-visuomotrice' ? `${note} s` : `${note} pts`)
+          : '—';
+        const pct = (st.max && note !== null) ? Math.min(100, Math.round(note / st.max * 100)) : 0;
+        return `<tr>
+          <td><strong>${st.nom}</strong></td>
+          <td><span class="badge badge-${st.domaine.toLowerCase()}">${st.domaine === 'V' ? 'Visuospatial' : 'Sensori-moteur'}</span></td>
+          <td>
+            <strong>${noteStr}</strong>
+            ${(st.max && note !== null) ? `<div class="score-bar"><div class="score-bar-fill" style="width:${pct}%"></div></div>` : ''}
+          </td>
+          <td style="color:var(--text-light);">${maxStr}</td>
+          <td>${s ? `<a href="subtests/${st.id}.html?bilan=${bilanId}" class="btn btn-secondary btn-sm">Modifier</a>` : `<a href="subtests/${st.id}.html?bilan=${bilanId}" class="btn btn-secondary btn-sm">Saisir</a>`}</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    }
+
+    init();
+  </script>
+</body>
+</html>

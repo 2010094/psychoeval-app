@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orientation — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right"><a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a></div>
+  </header>
+  <div class="subtest-page-header">
+    <h1>Orientation <span class="badge badge-v domain-badge">Visuospatial</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">3–12 ans · Note max : 10</span>
+  </div>
+  <div class="container">
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p>Présenter l'Item 1. Montrer le schéma du bas.</p>
+      <div class="verbatim">Suis le chemin jusqu'à cette maison.</div>
+      <p style="margin-top:8px;">Puis montrer le schéma du haut :</p>
+      <div class="verbatim">Maintenant, nous allons faire quelque chose. Suis le chemin en bas (montrer), mais montre tout simplement la maison en haut. Maintenant, montre-moi cette maison sur cette carte.</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Items 1 à 10. Entourer la bonne réponse dans le Cahier de passation. 1 point par bonne réponse.</p>
+    </div>
+
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">0</span>
+        <span class="max">/ 10</span>
+      </div>
+    </div>
+
+    <div class="score-section">
+      <h2>Items 1 à 10 — Cliquer pour coter (vert = correct / rouge = incorrect)</h2>
+      <div class="items-grid" id="grid"></div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+    requireAuth();
+
+    // scores[i] : null = non coté, 1 = correct, 0 = incorrect
+    const scores = Array(10).fill(null);
+
+    function buildGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'item-btn';
+        btn.innerHTML = `<span class="item-num">Item ${i+1}</span><span class="item-score">–</span>`;
+        btn.onclick = () => cycle(i, btn);
+        grid.appendChild(btn);
+      }
+    }
+
+    function cycle(i, btn) {
+      if (scores[i] === null) scores[i] = 1;
+      else if (scores[i] === 1) scores[i] = 0;
+      else scores[i] = null;
+      const s = scores[i];
+      btn.className = 'item-btn' + (s === 1 ? ' correct' : s === 0 ? ' incorrect' : '');
+      btn.querySelector('.item-score').textContent = s === null ? '–' : s;
+      majTotal();
+    }
+
+    function majTotal() {
+      const total = scores.reduce((a, v) => a + (v ?? 0), 0);
+      document.getElementById('noteFinale').textContent = total;
+    }
+
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'orientation').single();
+      if (data?.details?.items) {
+        data.details.items.forEach((v, i) => { scores[i] = v; });
+        buildGrid();
+        // Mettre à jour visuellement
+        const btns = document.querySelectorAll('.item-btn');
+        scores.forEach((s, i) => {
+          if (s === null) return;
+          btns[i].className = 'item-btn' + (s === 1 ? ' correct' : ' incorrect');
+          btns[i].querySelector('.item-score').textContent = s;
+        });
+        majTotal();
+      }
+    }
+
+    async function sauvegarder() {
+      const total = scores.reduce((a, v) => a + (v ?? 0), 0);
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId, subtest: 'orientation',
+        note_brute: total, details: { items: scores }
+      }, { onConflict: 'bilan_id,subtest' });
+      if (error) showError('Erreur.');
+      else { showSuccess('Enregistré !'); setTimeout(() => window.location.href = retourUrl, 1200); }
+    }
+
+    buildGrid();
+    chargerExistant();
+  </script>
+</body>
+</html>

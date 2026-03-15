@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tapping — PsychoEval</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo"><span>🧠</span> PsychoEval</div>
+    <div class="header-right">
+      <a id="retour" href="#" class="btn btn-secondary btn-sm">← Bilan</a>
+    </div>
+  </header>
+
+  <div class="subtest-page-header">
+    <h1>Tapping <span class="badge badge-s domain-badge">Sensori-moteur</span></h1>
+    <span style="color:var(--text-light); font-size:14px; margin-left:auto;">3–12 ans · Note max : 300 secondes</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <strong>Instructions pour le praticien</strong>
+      <p style="margin-bottom:8px;">Ce subtest évalue la rapidité et la précision des mouvements digitaux répétitifs et séquentiels.</p>
+      <p style="margin-bottom:4px;"><strong>Items 1 & 2 — Tapping répétitif</strong> (ouvrir/fermer les doigts)</p>
+      <div class="verbatim">Maintenant, montre-moi à quelle vitesse tu peux le faire jusqu'à ce que je te dise d'arrêter. Ouvre et ferme tes doigts bien comme ceci (faire le geste). Pose ton autre main sur la table. Va aussi vite que tu le peux. Tu es prêt ? Vas-y !</div>
+      <p style="margin-top:8px; margin-bottom:4px;"><strong>Items 3 & 4 — Tapping séquentiel</strong> (index → petit doigt le long du pouce)</p>
+      <div class="verbatim">Commence avec cette main. Voyons à quelle vitesse tu peux faire comme ça (montrer le mouvement). Fais attention d'aller de l'index (montrer) jusqu'au petit doigt. Pose ton autre main sur la table. Quand je te dirai « Vas-y », va aussi vite que tu le peux jusqu'à ce que je te dise « Stop ». Tu es prêt ? Vas-y !</div>
+      <p style="margin-top:8px; font-size:13px; color:var(--text-light);">Stopwatch : Items 1&2 → arrêter à 32 mouvements corrects ou 60 s max. Items 3&4 → arrêter à 8 séquences correctes ou 90 s max. Une erreur = ordre incorrect, sauter un doigt, doigts raides.</p>
+    </div>
+
+    <!-- Note totale -->
+    <div class="note-totale">
+      <span class="label">Note Totale</span>
+      <div style="display:flex; align-items:baseline; gap:6px;">
+        <span class="score" id="noteFinale">–</span>
+        <span class="max">/ 300 secondes</span>
+      </div>
+    </div>
+
+    <!-- Les 4 items -->
+    <div class="tapping-items" id="items">
+
+      <!-- Item 1 -->
+      <div class="tapping-item" id="item-1">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <h3>Item 1 — Tapping répétitif · Main dominante</h3>
+          <span id="status-1" class="tapping-status" style="display:none;"></span>
+        </div>
+        <p>32 mouvements corrects ou 60 secondes maximum</p>
+        <div class="timer-box">
+          <div class="timer-display" id="timer-1">0:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary btn-sm" onclick="startTimer(1)">Démarrer</button>
+            <button class="btn btn-secondary btn-sm" onclick="stopTimer(1)">Arrêter</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetTimer(1)">Reset</button>
+          </div>
+        </div>
+        <div class="tapping-result">
+          <label>Temps enregistré :</label>
+          <input type="number" id="temps-1" min="0" max="60" placeholder="s" oninput="majTotal()" />
+          <span style="font-size:14px; color:var(--text-light);">secondes</span>
+          <label style="margin-left:16px;">Tâche :</label>
+          <select id="complete-1" onchange="majStatus(1)" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+            <option value="">—</option>
+            <option value="complete">Complète (≤60s)</option>
+            <option value="timeout">Temps dépassé (60s)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="tapping-item" id="item-2">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <h3>Item 2 — Tapping répétitif · Main non dominante</h3>
+          <span id="status-2" class="tapping-status" style="display:none;"></span>
+        </div>
+        <p>32 mouvements corrects ou 60 secondes maximum</p>
+        <div class="timer-box">
+          <div class="timer-display" id="timer-2">0:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary btn-sm" onclick="startTimer(2)">Démarrer</button>
+            <button class="btn btn-secondary btn-sm" onclick="stopTimer(2)">Arrêter</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetTimer(2)">Reset</button>
+          </div>
+        </div>
+        <div class="tapping-result">
+          <label>Temps enregistré :</label>
+          <input type="number" id="temps-2" min="0" max="60" placeholder="s" oninput="majTotal()" />
+          <span style="font-size:14px; color:var(--text-light);">secondes</span>
+          <label style="margin-left:16px;">Tâche :</label>
+          <select id="complete-2" onchange="majStatus(2)" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+            <option value="">—</option>
+            <option value="complete">Complète (≤60s)</option>
+            <option value="timeout">Temps dépassé (60s)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="tapping-item" id="item-3">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <h3>Item 3 — Tapping séquentiel · Main dominante</h3>
+          <span id="status-3" class="tapping-status" style="display:none;"></span>
+        </div>
+        <p>8 séquences correctes ou 90 secondes maximum</p>
+        <div class="timer-box">
+          <div class="timer-display" id="timer-3">0:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary btn-sm" onclick="startTimer(3)">Démarrer</button>
+            <button class="btn btn-secondary btn-sm" onclick="stopTimer(3)">Arrêter</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetTimer(3)">Reset</button>
+          </div>
+        </div>
+        <div class="tapping-result">
+          <label>Temps enregistré :</label>
+          <input type="number" id="temps-3" min="0" max="90" placeholder="s" oninput="majTotal()" />
+          <span style="font-size:14px; color:var(--text-light);">secondes</span>
+          <label style="margin-left:16px;">Tâche :</label>
+          <select id="complete-3" onchange="majStatus(3)" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+            <option value="">—</option>
+            <option value="complete">Complète (≤90s)</option>
+            <option value="timeout">Temps dépassé (90s)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="tapping-item" id="item-4">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <h3>Item 4 — Tapping séquentiel · Main non dominante</h3>
+          <span id="status-4" class="tapping-status" style="display:none;"></span>
+        </div>
+        <p>8 séquences correctes ou 90 secondes maximum</p>
+        <div class="timer-box">
+          <div class="timer-display" id="timer-4">0:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-primary btn-sm" onclick="startTimer(4)">Démarrer</button>
+            <button class="btn btn-secondary btn-sm" onclick="stopTimer(4)">Arrêter</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetTimer(4)">Reset</button>
+          </div>
+        </div>
+        <div class="tapping-result">
+          <label>Temps enregistré :</label>
+          <input type="number" id="temps-4" min="0" max="90" placeholder="s" oninput="majTotal()" />
+          <span style="font-size:14px; color:var(--text-light);">secondes</span>
+          <label style="margin-left:16px;">Tâche :</label>
+          <select id="complete-4" onchange="majStatus(4)" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px;">
+            <option value="">—</option>
+            <option value="complete">Complète (≤90s)</option>
+            <option value="timeout">Temps dépassé (90s)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px; display:flex; gap:12px;">
+      <button class="btn btn-primary btn-lg" onclick="sauvegarder()">Enregistrer</button>
+      <a id="retour2" href="#" class="btn btn-secondary btn-lg">Retour au bilan</a>
+    </div>
+    <div id="error" class="alert alert-error" style="margin-top:12px;"></div>
+    <div id="success" class="alert alert-success" style="margin-top:12px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script>
+    const bilanId = getParam('bilan') || sessionStorage.getItem('bilan_id');
+    if (!bilanId) window.location.href = '../dashboard.html';
+
+    const retourUrl = `../bilan.html?id=${bilanId}`;
+    document.getElementById('retour').href = retourUrl;
+    document.getElementById('retour2').href = retourUrl;
+
+    requireAuth();
+
+    // ===== CHRONOMÈTRES =====
+    const timers = { 1: null, 2: null, 3: null, 4: null };
+    const secondes = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const maxTemps = { 1: 60, 2: 60, 3: 90, 4: 90 };
+
+    function startTimer(n) {
+      if (timers[n]) return;
+      timers[n] = setInterval(() => {
+        secondes[n]++;
+        afficherTimer(n);
+        if (secondes[n] >= maxTemps[n]) {
+          stopTimer(n);
+          document.getElementById(`temps-${n}`).value = maxTemps[n];
+          document.getElementById(`complete-${n}`).value = 'timeout';
+          majStatus(n);
+          majTotal();
+        }
+      }, 1000);
+      document.getElementById(`timer-${n}`).classList.add('running');
+    }
+
+    function stopTimer(n) {
+      clearInterval(timers[n]);
+      timers[n] = null;
+      document.getElementById(`timer-${n}`).classList.remove('running');
+      // Copier le temps dans l'input si vide
+      const input = document.getElementById(`temps-${n}`);
+      if (!input.value) {
+        input.value = secondes[n];
+        majTotal();
+      }
+    }
+
+    function resetTimer(n) {
+      clearInterval(timers[n]);
+      timers[n] = null;
+      secondes[n] = 0;
+      afficherTimer(n);
+      document.getElementById(`timer-${n}`).classList.remove('running', 'over');
+    }
+
+    function afficherTimer(n) {
+      const s = secondes[n];
+      const min = Math.floor(s / 60);
+      const sec = s % 60;
+      const el = document.getElementById(`timer-${n}`);
+      el.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+      if (s >= maxTemps[n]) el.classList.add('over');
+    }
+
+    function majStatus(n) {
+      const val = document.getElementById(`complete-${n}`).value;
+      const el = document.getElementById(`status-${n}`);
+      if (!val) { el.style.display = 'none'; return; }
+      el.style.display = 'inline';
+      el.className = `tapping-status ${val}`;
+      el.textContent = val === 'complete' ? 'Complète' : 'Temps dépassé';
+      document.getElementById(`item-${n}`).classList.toggle('done', true);
+    }
+
+    function majTotal() {
+      let total = 0;
+      let tous = true;
+      for (let i = 1; i <= 4; i++) {
+        const val = parseFloat(document.getElementById(`temps-${i}`).value);
+        if (isNaN(val)) { tous = false; }
+        else total += val;
+      }
+      document.getElementById('noteFinale').textContent = tous ? Math.round(total) : '–';
+    }
+
+    // ===== CHARGER SCORES EXISTANTS =====
+    async function chargerExistant() {
+      const { data } = await sb.from('scores').select('*').eq('bilan_id', bilanId).eq('subtest', 'tapping').single();
+      if (data?.details) {
+        const d = data.details;
+        for (let i = 1; i <= 4; i++) {
+          if (d[`temps_${i}`] !== undefined) {
+            document.getElementById(`temps-${i}`).value = d[`temps_${i}`];
+          }
+          if (d[`complete_${i}`]) {
+            document.getElementById(`complete-${i}`).value = d[`complete_${i}`];
+            majStatus(i);
+          }
+        }
+        majTotal();
+      }
+    }
+
+    // ===== SAUVEGARDER =====
+    async function sauvegarder() {
+      let total = 0;
+      const details = {};
+      for (let i = 1; i <= 4; i++) {
+        const t = parseFloat(document.getElementById(`temps-${i}`).value);
+        if (!isNaN(t)) { total += t; details[`temps_${i}`] = t; }
+        details[`complete_${i}`] = document.getElementById(`complete-${i}`).value;
+      }
+
+      const { error } = await sb.from('scores').upsert({
+        bilan_id: bilanId,
+        subtest: 'tapping',
+        note_brute: Math.round(total),
+        details
+      }, { onConflict: 'bilan_id,subtest' });
+
+      if (error) {
+        showError('Erreur lors de l\'enregistrement.');
+      } else {
+        showSuccess('Scores enregistrés !');
+        setTimeout(() => window.location.href = retourUrl, 1200);
+      }
+    }
+
+    chargerExistant();
+  </script>
+</body>
+</html>
