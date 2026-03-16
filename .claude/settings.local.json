@@ -10,7 +10,12 @@
       "Bash(pip3 install:*)",
       "Bash(git init:*)",
       "Bash(git pull:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(gh auth:*)",
+      "Bash(git rm:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel:*)"
     ]
   }
 }

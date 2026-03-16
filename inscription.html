@@ -42,6 +42,37 @@
           <label for="password2">Confirmer le mot de passe</label>
           <input type="password" id="password2" placeholder="••••••••" required />
         </div>
+
+        <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px;">
+          <p style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text);">Consentements requis</p>
+
+          <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; cursor:pointer;">
+            <input type="checkbox" id="consent_cgu" required style="margin-top:3px; flex-shrink:0;" />
+            <span style="font-size:13px; color:var(--text);">
+              J'ai lu et j'accepte les <a href="mentions-legales.html" target="_blank">Mentions légales</a>
+              et la <a href="politique-confidentialite.html" target="_blank">Politique de confidentialité</a>. *
+            </span>
+          </label>
+
+          <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; cursor:pointer;">
+            <input type="checkbox" id="consent_donnees_sante" required style="margin-top:3px; flex-shrink:0;" />
+            <span style="font-size:13px; color:var(--text);">
+              Je comprends que PsychoEval traite des <strong>données de santé</strong> de patients mineurs
+              et m'engage à recueillir le consentement écrit des parents ou tuteurs légaux
+              avant tout enregistrement. *
+            </span>
+          </label>
+
+          <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+            <input type="checkbox" id="consent_rgpd" required style="margin-top:3px; flex-shrink:0;" />
+            <span style="font-size:13px; color:var(--text);">
+              En tant que professionnel de santé, j'accepte d'être responsable du traitement
+              des données de mes patients conformément au <strong>RGPD</strong> et à la
+              réglementation française. *
+            </span>
+          </label>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-block btn-lg">Créer mon compte</button>
       </form>
 
